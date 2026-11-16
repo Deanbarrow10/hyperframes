@@ -2,15 +2,17 @@
 // Bundles the parts of packages/core's audioCarve.ts and audioFx.ts that carve.mjs calls into one
 // import-free .mjs inside the skill, so carve.mjs needs no @hyperframes/core install.
 import { realpathSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = resolve(here, "../packages/core/src");
 const OUTFILE = resolve(here, "../skills/media-use/audio/scripts/lib/audio-carve.mjs");
-// scripts/ has no node_modules of its own (bun's per-consumer linking); reach into the one
-// package that already depends on esbuild rather than adding a root-level dependency.
-const { build } = await import(resolve(here, "../packages/core/node_modules/esbuild/lib/main.js"));
+// scripts/ has no node_modules of its own; resolve esbuild the way packages/core, which depends
+// on it, would, rather than adding a root-level dependency.
+const coreRequire = createRequire(resolve(here, "../packages/core/package.json"));
+const { build } = await import(pathToFileURL(coreRequire.resolve("esbuild")).href);
 
 const ENTRY = `
 export {
